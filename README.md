@@ -1,0 +1,9 @@
+# Freenet-Scaffold
+
+Convenience library to assist in the creation of Freenet apps, also uses companion
+freenet-scaffold-macro.
+
+See [here](https://github.com/freenet/river/blob/main/common/src/room_state.rs) for a usage
+example (the "#[composable]" macro).
+
+
