@@ -1,9 +1,8 @@
 [package]
 name = "freenet-scaffold"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-serde.workspace = true
-
-freenet-scaffold-macro = { path = "../scaffold-macro" }
+serde = { version = "1.0.219", features = ["derive"] }
+freenet-scaffold-macro = "0.2.0"
