@@ -81,29 +81,13 @@ well as the `ComposableState` implementation for the `Test` struct.
   field depending on another appears after it. This is important for cases where one field's
   `apply_delta` relies on another field's state.
 
-- **Handling `None` Deltas**: Even if a field's delta is `None`, its `apply_delta` method will still
-  be called. Use this to handle dependencies on the parent state or other fields.
-
-## Testing
-
-The crate includes comprehensive tests demonstrating a common pattern:
-
-1. Create two versions of the state (`old` and `new`).
-2. Call `verify` on both.
-3. Generate a delta with `new.delta(&old, ...)`.
-4. Clone `old`, apply the delta, and assert equality with `new`.
-
-This pattern ensures that your delta logic is accurate and that `apply_delta` maintains the
-necessary invariants.
-
 ## License
 
-This project is licensed under the **GNU Lesser General Public License v2.1** (LGPL-2.1-only). See
-the `LICENSE` file for the full text.
+This project is licensed under the **GNU Lesser General Public License v2.1** (LGPL-2.1-only).
 
 ## Contributing
 
-Contributions are welcome. Please run `cargo test --all` before submitting a pull request.
+Pull requests are welcome.
 
 ---
 
