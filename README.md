@@ -10,11 +10,11 @@ is challenging. Traditional methods often rely on consensus algorithms, which ca
 resource-intensive and less scalable. Freenet addresses this by using a summary-delta
 synchronization approach, where each node summarizes its state and exchanges deltas—minimal changes
 needed to update another node's state. This method reduces bandwidth usage and allows for efficient,
-deterministic merging of states across the network.
+deterministic merging of states across the network.
 
 The `freenet-scaffold` crate provides the `ComposableState` trait and associated utilities to
 implement this approach in Rust. It enables developers to define how their data structures can be
-summarized, how deltas are computed, and how to apply these deltas to achieve eventual consistency.
+summarized, how deltas are computed, and how to apply these deltas to achieve eventual consistency.
 
 ## Getting Started
 
@@ -31,7 +31,7 @@ freenet-scaffold-macro = "0.2"
 The `freenet-scaffold-macro` crate provides the `#[composable]` procedural macro, which derives
 implementations of the `ComposableState` trait for structs whose fields also implement
 `ComposableState`. This macro re-exports everything from `freenet-scaffold`, so importing
-`freenet-scaffold-macro` is typically sufficient.
+`freenet-scaffold-macro` is typically sufficient.
 
 ### Example
 
@@ -73,40 +73,40 @@ pub struct Test {
 ```
 
 The `#[composable]` macro automatically generates the necessary summary and delta structures, as
-well as the `ComposableState` implementation for the `Test` struct.
+well as the `ComposableState` implementation for the `Test` struct.
 
 ## Best Practices
 
 - **Field Order Matters**: When using `#[composable]`, ensure that fields are ordered such that any
   field depending on another appears after it. This is important for cases where one field's
-  `apply_delta` relies on another field's state.
+  `apply_delta` relies on another field's state.
 
 - **Handling `None` Deltas**: Even if a field's delta is `None`, its `apply_delta` method will still
-  be called. Use this to handle dependencies on the parent state or other fields.
+  be called. Use this to handle dependencies on the parent state or other fields.
 
 ## Testing
 
-The crate includes comprehensive tests demonstrating a common pattern:
+The crate includes comprehensive tests demonstrating a common pattern:
 
 1. Create two versions of the state (`old` and `new`).
 2. Call `verify` on both.
 3. Generate a delta with `new.delta(&old, ...)`.
-4. Clone `old`, apply the delta, and assert equality with `new`.
+4. Clone `old`, apply the delta, and assert equality with `new`.
 
 This pattern ensures that your delta logic is accurate and that `apply_delta` maintains the
-necessary invariants.
+necessary invariants.
 
 ## License
 
 This project is licensed under the **GNU Lesser General Public License v2.1** (LGPL-2.1-only). See
-the `LICENSE` file for the full text.
+the `LICENSE` file for the full text.
 
 ## Contributing
 
-Contributions are welcome. Please run `cargo test --all` before submitting a pull request.
+Contributions are welcome. Please run `cargo test --all` before submitting a pull request.
 
 ---
 
 For a deeper understanding of the summary-delta synchronization approach and its advantages in
 decentralized systems, refer to the article:
-[Understanding Freenet's Delta-Sync](https://freenet.org/news/summary-delta-sync/).
+[Understanding Freenet's Delta-Sync](https://freenet.org/news/summary-delta-sync/).
