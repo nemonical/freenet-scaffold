@@ -1,12 +1,9 @@
 # Freenet Scaffold
 
-`freenet-scaffold` is a small support crate used by Freenet contracts and other state‑machine style
-code. It provides two things:
-
-1. **`ComposableState` trait** – a set of callbacks that let a piece of state validate itself,
-   create a compact summary, generate an incremental change set (a _delta_), and apply such a change
-   set.
-2. **Utility helpers** such as a super‑fast, non‑cryptographic hash (`FastHash`).
+`freenet-scaffold` is a lightweight utility crate that underpins Freenet contract development. It
+exposes the [`ComposableState`
+trait]\(https\://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs) and a handful of helpers (e.g.,
+a fast non‑cryptographic hash).
 
 The companion crate **`freenet-scaffold-macro`** exposes the `#[composable]` procedural macro that
 derives a fully‑featured `ComposableState` implementation for a struct whose fields themselves
@@ -18,8 +15,8 @@ re‑exports everything from this crate, so a single `use freenet_scaffold::*;` 
 ## Why does this exist?
 
 Freenet contracts run on an eventually‑consistent, peer‑to‑peer network. A contract’s state can be
-modified concurrently on different peers, then merged. The traditional “replace the entire object”
-approach wastes bandwidth and complicates merges.  
+modified concurrently on different peers, then merged. Replacing the entire object each time wastes
+bandwidth and makes merges harder.\
 `ComposableState` forces each component to describe itself in three sizes:
 
 - **Summary** – a small, hash‑like view that answers “has this part changed?”
@@ -28,6 +25,10 @@ approach wastes bandwidth and complicates merges.
 
 By composing these pieces recursively, large structures can be updated with tiny messages, and
 conflicting edits can be merged deterministically.
+
+For a broader, non‑code overview of why this _summary + delta_ approach scales so well on a
+small‑world peer‑to‑peer network, see the project blog post:
+[“Understanding Freenet’s Delta‑Sync”](https://freenet.org/news/summary-delta-sync/).
 
 ---
 
@@ -40,7 +41,9 @@ freenet-scaffold = "0.2"
 freenet-scaffold-macro = "0.2" # only if you use the derive macro
 ```
 
-_Both crates are `no_std` with the `alloc` feature; `std` is enabled by default._
+_Both crates are ************\*\*************`no_std`************\*\************* with the
+************\*\*************`alloc`************\*\************* feature;
+************\*\*************`std`************\*\************* is enabled by default._
 
 ---
 
@@ -104,6 +107,14 @@ The macro expands `Test` into roughly the following:
   depends on a configuration component that lives earlier in the struct.
 - If a field’s delta is `None`, its `apply_delta` will still be called. Use this to react to changes
   in the parent or other fields.
+
+### Complete example in River
+
+For a real‑world contract that exercises `ComposableState` and `#[composable]` with several
+inter‑dependent fields, take a look at the River chat application’s state definition:
+[`room_state.rs`](https://github.com/freenet/river/blob/main/common/src/room_state.rs). It
+demonstrates validation logic, owner/member permissions, and how deltas cascade through nested
+components.
 
 ---
 
