@@ -1,9 +1,9 @@
 # Freenet Scaffold
 
-`freenet-scaffold` is a lightweight utility crate designed to make Freenet contract development
-easier. It exposes the
-[ComposableState trait](https://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs) and a
-handful of helpers (e.g., a fast non‑cryptographic hash).
+`freenet-scaffold` is a lightweight utility crate that underpins Freenet contract development. It
+exposes the [`ComposableState`
+trait]\([https://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs](https://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs))
+and a handful of helpers (e.g., a fast non‑cryptographic hash).
 
 The companion crate **`freenet-scaffold-macro`** exposes the `#[composable]` procedural macro that
 derives a fully‑featured `ComposableState` implementation for a struct whose fields themselves
@@ -37,9 +37,19 @@ small‑world peer‑to‑peer network, see the project blog post:
 ```toml
 # Cargo.toml
 [dependencies]
-freenet-scaffold = "0.2"
-freenet-scaffold-macro = "0.2" # only if you use the derive macro
+# The macro crate re‑exports everything you need.
+freenet-scaffold-macro = "0.2"
 ```
+
+If you are building without procedural macros (or otherwise need the trait directly), also add:
+
+```toml
+# Cargo.toml
+[dependencies]
+freenet-scaffold = "0.2"
+```
+
+_Both crates are `no_std`‑compatible behind the `alloc` feature; `std` is enabled by default._
 
 ---
 
