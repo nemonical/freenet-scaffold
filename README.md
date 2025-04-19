@@ -1,7 +1,7 @@
 # Freenet Scaffold
 
-`freenet-scaffold` is a lightweight utility crate that underpins Freenet contract development. It
-exposes the
+`freenet-scaffold` is a lightweight utility crate designed to make Freenet contract development
+easier. It exposes the
 [`ComposableState` trait](https://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs) and a
 handful of helpers (e.g., a fast non‑cryptographic hash).
 
