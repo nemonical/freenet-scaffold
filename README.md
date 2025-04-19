@@ -1,63 +1,41 @@
 # Freenet Scaffold
 
-`freenet-scaffold` is a lightweight utility crate designed to make Freenet contract development
-easier. It exposes the
-[`ComposableState` trait](https://github.com/freenet/freenet-scaffold/blob/main/src/lib.rs) and a
-handful of helpers (e.g., a fast non‑cryptographic hash).
+`freenet-scaffold` is a Rust utility crate that simplifies the development of Freenet contracts by
+providing tools to implement efficient, mergeable state synchronization.
 
-The companion crate **`freenet-scaffold-macro`** exposes the `#[composable]` procedural macro that
-derives a fully‑featured `ComposableState` implementation for a struct whose fields themselves
-implement `ComposableState`. Users of the macro only need to depend on `freenet-scaffold-macro`; it
-re‑exports everything from this crate, so a single `use freenet_scaffold::*;` is usually enough.
+## Overview
 
----
+In decentralized systems like Freenet, achieving consistency across nodes without heavy coordination
+is challenging. Traditional methods often rely on consensus algorithms, which can be
+resource-intensive and less scalable. Freenet addresses this by using a summary-delta
+synchronization approach, where each node summarizes its state and exchanges deltas—minimal changes
+needed to update another node's state. This method reduces bandwidth usage and allows for efficient,
+deterministic merging of states across the network.
 
-## Why does this exist?
+The `freenet-scaffold` crate provides the `ComposableState` trait and associated utilities to
+implement this approach in Rust. It enables developers to define how their data structures can be
+summarized, how deltas are computed, and how to apply these deltas to achieve eventual consistency.
 
-Freenet contracts run on an eventually‑consistent, peer‑to‑peer network. A contract’s state can be
-modified concurrently on different peers, then merged. Replacing the entire object each time wastes
-bandwidth and makes merges harder.\
-`ComposableState` forces each component to describe itself in three sizes:
+## Getting Started
 
-- **Summary** – a small, hash‑like view that answers “has this part changed?”
-- **Delta** – the minimal information needed to turn one state into the next.
-- **Full state** – the complete object you would have written by hand.
+### Installation
 
-By composing these pieces recursively, large structures can be updated with tiny messages, and
-conflicting edits can be merged deterministically.
-
-For a broader, non‑code overview of why this _summary + delta_ approach scales so well on a
-small‑world peer‑to‑peer network, see the project blog post:
-[“Understanding Freenet’s Delta‑Sync”](https://freenet.org/news/summary-delta-sync/).
-
----
-
-## Installing
+Add the following to your `Cargo.toml`:
 
 ```toml
-# Cargo.toml
 [dependencies]
-# The macro crate re‑exports everything you need.
+freenet-scaffold = "0.2"
 freenet-scaffold-macro = "0.2"
 ```
 
-If you are building without procedural macros (or otherwise need the trait directly), also add:
+The `freenet-scaffold-macro` crate provides the `#[composable]` procedural macro, which derives
+implementations of the `ComposableState` trait for structs whose fields also implement
+`ComposableState`. This macro re-exports everything from `freenet-scaffold`, so importing
+`freenet-scaffold-macro` is typically sufficient.
 
-```toml
-# Cargo.toml
-[dependencies]
-freenet-scaffold = "0.2"
-```
+### Example
 
-_Both crates are `no_std`‑compatible behind the `alloc` feature; `std` is enabled by default._
-
----
-
-## Quick start
-
-Below is a minimal, self‑contained example. It shows two domain‑specific structs (`ContractualI32`,
-`ContractualString`) that implement `ComposableState` manually, then a composite struct that
-delegates the heavy lifting to `#[composable]`.
+Here's a minimal example demonstrating how to use `freenet-scaffold` and `freenet-scaffold-macro`:
 
 ```rust
 use freenet_scaffold::{ComposableState, util::FastHash};
@@ -86,96 +64,49 @@ impl ComposableState for ContractualI32 {
     }
 }
 
-// Repeat for ContractualString …
-
-#[composable]                 // <<< this line does all the work
+#[composable]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Test {
     number: ContractualI32,
-    text:   ContractualString,
+    // Add other fields implementing ComposableState
 }
 ```
 
-The macro expands `Test` into roughly the following:
+The `#[composable]` macro automatically generates the necessary summary and delta structures, as
+well as the `ComposableState` implementation for the `Test` struct.
 
-- A `TestSummary` struct containing the summaries of each field.
-- A `TestDelta` struct with optional deltas for each field.
-- A `ComposableState` impl that:
-  - Delegates `verify`, `summarize`, `delta`, and `apply_delta` down into each field.
-  - Generates `None` when no field changed so that upstream code can avoid needless work.
-  - Performs compile‑time checks that all fields share the same `ParentState` and `Parameters`
-    types.
+## Best Practices
 
-### Things to remember
+- **Field Order Matters**: When using `#[composable]`, ensure that fields are ordered such that any
+  field depending on another appears after it. This is important for cases where one field's
+  `apply_delta` relies on another field's state.
 
-- **Field order matters** when using `#[composable]`. If field `B` refers to field `A` inside its
-  `apply_delta`, then `A` must appear before `B` in the struct. This is common when one component
-  depends on a configuration component that lives earlier in the struct.
-- If a field’s delta is `None`, its `apply_delta` will still be called. Use this to react to changes
-  in the parent or other fields.
+- **Handling `None` Deltas**: Even if a field's delta is `None`, its `apply_delta` method will still
+  be called. Use this to handle dependencies on the parent state or other fields.
 
-### Complete example in River
+## Testing
 
-For a real‑world contract that exercises `ComposableState` and `#[composable]` with several
-inter‑dependent fields, take a look at the River chat application’s state definition:
-[`room_state.rs`](https://github.com/freenet/river/blob/main/common/src/room_state.rs). It
-demonstrates validation logic, owner/member permissions, and how deltas cascade through nested
-components.
+The crate includes comprehensive tests demonstrating a common pattern:
 
----
-
-## Advanced usage
-
-### Implementing your own leaf component
-
-A leaf component is a type that implements `ComposableState` directly instead of via the macro. You
-will usually need to do this for primitive values or cryptographic objects.
-
-1. Choose the smallest data you can get away with for `Summary`.
-2. Make `Delta` as small as possible. A single bit flag or an enum variant is fine.
-3. Write `verify` defensively (check signatures, bounds, invariants).
-4. Keep `apply_delta` idempotent and deterministic.
-
-### Fast hashing helper
-
-`util::fast_hash` is an extremely cheap, 64‑bit hash. It is **not** cryptographically secure. Use it
-only for lookup keys or change detection where collisions have no security impact. When you need a
-secure hash, pull in a real hash function.
-
----
-
-## Testing pattern
-
-The crate ships with extensive tests that demonstrate a pattern you can copy:
-
-1. Build two versions of the state (`old`, `new`).
+1. Create two versions of the state (`old` and `new`).
 2. Call `verify` on both.
-3. Produce a delta with `new.delta(&old, …)`.
-4. Clone `old`, apply the delta, then assert equality with `new`.
+3. Generate a delta with `new.delta(&old, ...)`.
+4. Clone `old`, apply the delta, and assert equality with `new`.
 
-This confirms that your delta logic is lossless and that `apply_delta` maintains invariants.
-
----
-
-## Relationship between the two crates
-
-| Crate                    | Contains                         | Cargo feature gate |
-| ------------------------ | -------------------------------- | ------------------ |
-| `freenet-scaffold`       | `ComposableState` trait, helpers | `std` (default)    |
-| `freenet-scaffold-macro` | `#[composable]` derive macro     | —                  |
-
-`freenet-scaffold-macro` depends on `freenet-scaffold` and re‑exports everything, so most downstream
-crates only need to depend on the macro crate.
-
----
+This pattern ensures that your delta logic is accurate and that `apply_delta` maintains the
+necessary invariants.
 
 ## License
 
-This project is licensed under the **GNU Lesser General Public License v2.1** (LGPL‑2.1‑only). See
-the `LICENSE` file for the full text.
-
----
+This project is licensed under the **GNU Lesser General Public License v2.1** (LGPL-2.1-only). See
+the `LICENSE` file for the full text.
 
 ## Contributing
 
-Issues and pull requests are welcome. Please run `cargo test --all` before submitting a PR.
+Contributions are welcome. Please run `cargo test --all` before submitting a pull request.
+
+---
+
+For a deeper understanding of the summary-delta synchronization approach and its advantages in
+decentralized systems, refer to the article:
+[Understanding Freenet's Delta-Sync](https://freenet.org/news/summary-delta-sync/).
