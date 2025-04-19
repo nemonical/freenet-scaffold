@@ -1,7 +1,7 @@
 # Freenet Scaffold
 
 `freenet-scaffold` is a Rust utility crate that simplifies the development of Freenet contracts by
-providing tools to implement efficient, mergeable state synchronization.
+providing tools to implement efficient, mergeable state synchronization.
 
 ## Overview
 
