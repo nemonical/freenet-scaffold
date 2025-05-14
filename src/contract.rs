@@ -8,6 +8,19 @@ pub struct Contract<T>(std::marker::PhantomData<T>)
 where
     T: ComposableState;
 
+impl<T: ComposableState> Contract<T> {
+    const DESER_ERR_MSG: &'static str = "an error occurred while deserializing the contract";
+    fn convert_deser_error<U>(
+        result: Result<U, serde_json::Error>,
+        msg: &str,
+    ) -> Result<U, ContractError> {
+        match result {
+            Ok(u) => Ok(u),
+            Err(error) => Err(ContractError::Deser(format!("{}:\n{}", msg, error))),
+        }
+    }
+}
+
 impl<T> Contract<T>
 where
     T: ComposableState<ParentState = RefCell<RelatedContracts<'static>>>
@@ -29,25 +42,15 @@ where
         let related = RefCell::new(related);
 
         match T::verify(
-            &match serde_json::from_slice(state.as_ref()) {
-                Ok(state) => state,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract state: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(state.as_ref()),
+                &format!("{} state", Self::DESER_ERR_MSG),
+            )?,
             &related,
-            &match serde_json::from_slice(parameters.as_ref()) {
-                Ok(parameters) => parameters,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract parameters: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(parameters.as_ref()),
+                &format!("{}, parameters", Self::DESER_ERR_MSG),
+            )?,
         ) {
             Ok(_) => {
                 let missing_contracts = related
@@ -82,25 +85,15 @@ where
         state: State<'static>,
     ) -> Result<StateSummary<'static>, ContractError> {
         match serde_json::to_vec(&T::summarize(
-            &match serde_json::from_slice(state.as_ref()) {
-                Ok(state) => state,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract state: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(state.as_ref()),
+                &format!("{} state", Self::DESER_ERR_MSG),
+            )?,
             &T::ParentState::default(),
-            &match serde_json::from_slice(parameters.as_ref()) {
-                Ok(parameters) => parameters,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract parameters: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(parameters.as_ref()),
+                &format!("{} parameters", Self::DESER_ERR_MSG),
+            )?,
         )) {
             Ok(summary) => Ok(summary.into()),
             Err(_) => todo!(),
@@ -113,34 +106,19 @@ where
         summary: StateSummary<'static>,
     ) -> Result<StateDelta<'static>, ContractError> {
         match serde_json::to_vec(&T::delta(
-            &match serde_json::from_slice(state.as_ref()) {
-                Ok(state) => state,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract state: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(state.as_ref()),
+                &format!("{} state", Self::DESER_ERR_MSG),
+            )?,
             &T::ParentState::default(),
-            &match serde_json::from_slice(parameters.as_ref()) {
-                Ok(parameters) => parameters,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occured while deserializing the contract parameters: {}",
-                        error
-                    )))
-                }
-            },
-            &match serde_json::from_slice(summary.as_ref()) {
-                Ok(summary) => summary,
-                Err(error) => {
-                    return Err(ContractError::Deser(format!(
-                        "an error occurred while deserializing the contract summary: {}",
-                        error
-                    )))
-                }
-            },
+            &Self::convert_deser_error(
+                serde_json::from_slice(parameters.as_ref()),
+                &format!("{} parameters", Self::DESER_ERR_MSG),
+            )?,
+            &Self::convert_deser_error(
+                serde_json::from_slice(summary.as_ref()),
+                &format!("{} summary", Self::DESER_ERR_MSG),
+            )?,
         )) {
             Ok(delta) => Ok(delta.into()),
             Err(_) => todo!(),
